@@ -1,0 +1,14 @@
+{
+  "name": "smart-wolffia-farm-v3",
+  "version": "3.0.0",
+  "description": "ระบบเพาะเลี้ยงไข่ผำอัจฉริยะเพื่อการผลิตโปรตีนทางเลือก (SMART WOLFFIA FARM V3)",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.1.0"
+  }
+}

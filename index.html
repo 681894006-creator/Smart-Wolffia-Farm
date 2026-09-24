@@ -45,11 +45,28 @@
       </div>
 
       <ul class="sidebar-nav">
+        <!-- OVERVIEW SECTION -->
+        <li class="nav-section-title">OVERVIEW</li>
         <li class="nav-item active" data-page="dashboard">
           <a><i class="fa-solid fa-house"></i> <span>แดชบอร์ดหลัก</span></a>
         </li>
+        <li class="nav-item" data-page="monitoring">
+          <a><i class="fa-solid fa-desktop text-emerald"></i> <span>ติดตามระบบ (Monitoring)</span></a>
+        </li>
+
+        <!-- DATA SECTION -->
+        <li class="nav-section-title">DATA & ANALYTICS</li>
+        <li class="nav-item" data-page="sensors">
+          <a><i class="fa-solid fa-microchip text-cyan"></i> <span>เซนเซอร์ (Sensors)</span></a>
+        </li>
         <li class="nav-item" data-page="history">
-          <a><i class="fa-solid fa-chart-line"></i> <span>ข้อมูลย้อนหลัง</span></a>
+          <a><i class="fa-solid fa-clock-rotate-left"></i> <span>ข้อมูลย้อนหลัง (History)</span></a>
+        </li>
+        <li class="nav-item" data-page="statistics">
+          <a><i class="fa-solid fa-calculator text-amber"></i> <span>สรุปสถิติ (Statistics)</span></a>
+        </li>
+        <li class="nav-item" data-page="analytics">
+          <a><i class="fa-solid fa-chart-line text-emerald"></i> <span>วิเคราะห์ข้อมูล (Analytics)</span></a>
         </li>
         <li class="nav-item" data-page="weekly-stats">
           <a><i class="fa-solid fa-chart-simple text-emerald"></i> <span>สถิติรายสัปดาห์</span></a>
@@ -69,6 +86,9 @@
         <li class="nav-item" data-page="correlation">
           <a><i class="fa-solid fa-chart-area text-cyan"></i> <span>วิเคราะห์ความสัมพันธ์</span></a>
         </li>
+
+        <!-- SYSTEM SECTION -->
+        <li class="nav-section-title">SYSTEM MANAGEMENT</li>
         <li class="nav-item" data-page="alerts">
           <a><i class="fa-solid fa-bell"></i> <span>ศูนย์แจ้งเตือน</span></a>
         </li>
@@ -85,7 +105,7 @@
           <a><i class="fa-solid fa-users-gear"></i> <span>ผู้ใช้งาน</span> <span class="nav-badge-admin">Admin</span></a>
         </li>
         <li class="nav-item" data-page="settings" id="navSettings">
-          <a><i class="fa-solid fa-sliders"></i> <span>ตั้งค่าระบบ</span> <span class="nav-badge-admin">Admin</span></a>
+          <a><i class="fa-solid fa-sliders"></i> <span>ตั้งค่าระบบ (Settings)</span> <span class="nav-badge-admin">Admin</span></a>
         </li>
         <li class="nav-item" data-page="audit-log" id="navAudit">
           <a><i class="fa-solid fa-clipboard-list"></i> <span>Audit Logs</span> <span class="nav-badge-admin">Admin</span></a>
@@ -115,16 +135,26 @@
       
       <!-- TOP HEADER BAR -->
       <header class="top-header">
-        <div class="header-title-box">
-          <h2>🌱 SMART WOLFFIA FARM</h2>
-          <p>ระบบเพาะเลี้ยงไข่ผำอัจฉริยะเพื่อการผลิตโปรตีนทางเลือก</p>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button id="btnMobileSidebarToggle" class="btn-mobile-nav" title="Toggle Navigation">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="header-title-box">
+            <h2>🌱 Smart Wolffia IoT</h2>
+            <p>ระบบเพาะเลี้ยงไข่ผำอัจฉริยะ</p>
+          </div>
         </div>
 
         <div class="header-controls">
           <!-- Connection Status Badge -->
           <div id="connectionStatus" class="connection-chip">
             <span class="pulse-dot"></span>
-            <span id="connectionStatusText">🟢 DEMO MODE (ข้อมูลจำลอง)</span>
+            <span id="connectionStatusText">🟡 DEMO MODE (ข้อมูลจำลอง)</span>
+          </div>
+
+          <!-- Last Updated Chip -->
+          <div class="time-chip" style="background: rgba(255,255,255,0.03); padding: 5px 12px; border-radius: var(--radius-full); border: 1px solid var(--bg-card-border);">
+            <i class="fa-solid fa-clock text-emerald"></i> <span style="font-size: 0.8rem; color: var(--text-sub);">Last updated:</span> <strong id="headerLastUpdated" style="color: var(--text-main); font-size: 0.82rem;">00:45:32</strong>
           </div>
 
           <!-- Mode Selector (Demo vs Live ESP32) -->
