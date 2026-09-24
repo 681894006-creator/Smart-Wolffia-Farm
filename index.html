@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Wolffia Farm - ระบบฟาร์มไข่ผำอัจฉริยะ ESP32</title>
-  <meta name="description" content="ระบบติดตามและควบคุมบ่อเลี้ยงไข่ผำอัจฉริยะแบบเรียลไทม์ เชื่อมต่อ ESP32 และ Firebase Realtime Database">
+  <title>SMART WOLFFIA FARM V3 — Dashboard & Long-Term Analytics</title>
+  <meta name="description" content="ระบบเพาะเลี้ยงไข่ผำอัจฉริยะเพื่อการผลิตโปรตีนทางเลือก (Smart Wolffia Farm V3)">
   
   <!-- Google Fonts: Prompt & Sarabun -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,460 +16,207 @@
   
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
-  <!-- Canvas Confetti CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  
-  <!-- Firebase JS SDK (v10.8.0 Compat) -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
-  <!-- Custom Styles -->
-  <link rel="stylesheet" href="css/styles.css">
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Background Glow & Particle FX -->
-  <div class="bg-glow bg-glow-1"></div>
-  <div class="bg-glow bg-glow-2"></div>
 
-  <!-- App Wrapper -->
-  <div class="app-container">
+  <!-- Ambient Glow Backgrounds -->
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Main App Layout Wrapper -->
+  <div class="app-layout">
     
-    <!-- Top Navigation / Header -->
-    <header class="main-header">
-      <div class="header-brand">
-        <div class="brand-logo">
-          <i class="fa-solid fa-leaf text-emerald"></i>
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-leaf"></i>
         </div>
-        <div class="brand-info">
-          <h1>Smart Wolffia Farm <span class="badge-v2">v2.0</span></h1>
-          <p>ระบบฟาร์มไข่ผำอัจฉริยะ ESP32 Real-Time Monitoring & Gateway</p>
+        <div class="brand-text">
+          <h1>SMART WOLFFIA</h1>
+          <span>FARM V3.0 ANALYTICS</span>
         </div>
       </div>
 
-      <div class="header-actions">
-        <!-- Connection Status Badge -->
-        <div id="connectionStatus" class="status-chip status-online">
-          <span class="pulse-dot"></span>
-          <span class="status-text">Firebase Connected</span>
-        </div>
+      <ul class="sidebar-nav">
+        <li class="nav-item active" data-page="dashboard">
+          <a><i class="fa-solid fa-house"></i> <span>แดชบอร์ดหลัก</span></a>
+        </li>
+        <li class="nav-item" data-page="history">
+          <a><i class="fa-solid fa-chart-line"></i> <span>ข้อมูลย้อนหลัง</span></a>
+        </li>
+        <li class="nav-item" data-page="weekly-stats">
+          <a><i class="fa-solid fa-chart-simple text-emerald"></i> <span>สถิติรายสัปดาห์</span></a>
+        </li>
+        <li class="nav-item" data-page="monthly-stats">
+          <a><i class="fa-solid fa-chart-column text-cyan"></i> <span>สถิติรายเดือน</span></a>
+        </li>
+        <li class="nav-item" data-page="batches">
+          <a><i class="fa-solid fa-rotate text-emerald"></i> <span>รอบการเพาะเลี้ยง</span></a>
+        </li>
+        <li class="nav-item" data-page="sales">
+          <a><i class="fa-solid fa-sack-dollar text-amber"></i> <span>การขาย & รายได้</span></a>
+        </li>
+        <li class="nav-item" data-page="forecast">
+          <a><i class="fa-solid fa-crystal-ball text-emerald"></i> <span>การคาดการณ์</span></a>
+        </li>
+        <li class="nav-item" data-page="correlation">
+          <a><i class="fa-solid fa-chart-area text-cyan"></i> <span>วิเคราะห์ความสัมพันธ์</span></a>
+        </li>
+        <li class="nav-item" data-page="alerts">
+          <a><i class="fa-solid fa-bell"></i> <span>ศูนย์แจ้งเตือน</span></a>
+        </li>
+        <li class="nav-item" data-page="growth">
+          <a><i class="fa-solid fa-seedling"></i> <span>การเจริญเติบโต</span></a>
+        </li>
+        <li class="nav-item" data-page="harvest">
+          <a><i class="fa-solid fa-basket-shopping"></i> <span>การเก็บเกี่ยว</span></a>
+        </li>
+        <li class="nav-item" data-page="nutrients">
+          <a><i class="fa-solid fa-bottle-droplet"></i> <span>สารอาหาร</span></a>
+        </li>
+        <li class="nav-item" data-page="users" id="navUsers">
+          <a><i class="fa-solid fa-users-gear"></i> <span>ผู้ใช้งาน</span> <span class="nav-badge-admin">Admin</span></a>
+        </li>
+        <li class="nav-item" data-page="settings" id="navSettings">
+          <a><i class="fa-solid fa-sliders"></i> <span>ตั้งค่าระบบ</span> <span class="nav-badge-admin">Admin</span></a>
+        </li>
+        <li class="nav-item" data-page="audit-log" id="navAudit">
+          <a><i class="fa-solid fa-clipboard-list"></i> <span>Audit Logs</span> <span class="nav-badge-admin">Admin</span></a>
+        </li>
+        <li class="nav-item" data-page="about">
+          <a><i class="fa-solid fa-circle-info"></i> <span>เกี่ยวกับระบบ</span></a>
+        </li>
+      </ul>
 
-        <!-- Mode Toggle (Firebase vs Simulator) -->
-        <div class="mode-switch-wrapper">
-          <span class="mode-label"><i class="fa-solid fa-server"></i> แหล่งข้อมูล:</span>
-          <button id="btnToggleMode" class="btn-toggle-mode">
-            <span id="modeIcon"><i class="fa-solid fa-cloud"></i></span>
-            <span id="modeText">Firebase RTDB</span>
-          </button>
+      <!-- SIDEBAR FOOTER (USER & LOGOUT) -->
+      <div class="sidebar-footer">
+        <div class="user-profile-card">
+          <div class="user-avatar" id="navUserAvatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="navUserName">Admin User</div>
+            <span class="user-role-tag role-admin" id="navUserRole">ADMIN</span>
+          </div>
         </div>
-
-        <!-- Audio Alarm Toggle -->
-        <button id="btnAudioToggle" class="btn-icon" title="เปิด/ปิด เสียงแจ้งเตือนเตือนภัย">
-          <i class="fa-solid fa-bell"></i>
+        <button id="btnLogout" class="btn-logout">
+          <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
         </button>
-
-        <!-- Theme Toggle Button -->
-        <button id="btnThemeToggle" class="btn-icon" title="สลับธีม สว่าง/มืด">
-          <i class="fa-solid fa-moon"></i>
-        </button>
       </div>
-    </header>
+    </aside>
 
-    <!-- Alert / System Status Bar -->
-    <section class="status-banner" id="statusBanner">
-      <div class="status-banner-content">
-        <i class="fa-solid fa-shield-halved status-icon"></i>
-        <div class="status-message">
-          <span class="status-title">สถานะระบบปัจจุบันจาก ESP32:</span>
-          <span id="espStatusText" class="status-detail">🟢 ระบบทำงานปกติ สภาวะแวดล้อมเหมาะสม</span>
-        </div>
-      </div>
-      <div class="last-sync-time">
-        <i class="fa-solid fa-clock"></i> อัปเดตล่าสุด: <span id="lastUpdatedTime">--:--:--</span>
-      </div>
-    </section>
-
-    <!-- Main Grid Content -->
-    <main class="dashboard-grid">
-
-      <!-- LEFT COLUMN: SENSORS & CONTROLS -->
-      <div class="grid-col main-controls-col">
-        
-        <!-- SENSOR CARDS GRID -->
-        <div class="section-header">
-          <h2><i class="fa-solid fa-microchip"></i> ข้อมูลเซนเซอร์ในบ่อผำ (Live Telemetry)</h2>
-          <span class="update-badge"><i class="fa-solid fa-bolt"></i> Realtime Sync</span>
+    <!-- MAIN CONTENT AREA -->
+    <div class="main-wrapper">
+      
+      <!-- TOP HEADER BAR -->
+      <header class="top-header">
+        <div class="header-title-box">
+          <h2>🌱 SMART WOLFFIA FARM</h2>
+          <p>ระบบเพาะเลี้ยงไข่ผำอัจฉริยะเพื่อการผลิตโปรตีนทางเลือก</p>
         </div>
 
-        <div class="sensors-grid">
-          
-          <!-- 1. Water Temperature Card (DS18B20) -->
-          <div class="sensor-card" id="cardTemp">
-            <div class="card-top">
-              <div class="sensor-icon icon-temp">
-                <i class="fa-solid fa-temperature-three-quarters"></i>
-              </div>
-              <div class="sensor-meta">
-                <span class="sensor-title">อุณหภูมิน้ำ</span>
-                <span class="sensor-pin">DS18B20 (Pin 4)</span>
-              </div>
-            </div>
-            <div class="card-value-box">
-              <span id="valTemp" class="sensor-value">--</span>
-              <span class="sensor-unit">°C</span>
-            </div>
-            <div class="sensor-range-bar">
-              <div class="range-info">
-                <span>เกณฑ์สูงสุด: 32.0 °C</span>
-                <span id="tempStatusBadge" class="badge-status status-good">ปกติ</span>
-              </div>
-              <div class="progress-track">
-                <div id="barTemp" class="progress-fill fill-temp" style="width: 50%;"></div>
-              </div>
-            </div>
+        <div class="header-controls">
+          <!-- Connection Status Badge -->
+          <div id="connectionStatus" class="connection-chip">
+            <span class="pulse-dot"></span>
+            <span id="connectionStatusText">🟢 DEMO MODE (ข้อมูลจำลอง)</span>
           </div>
 
-          <!-- 2. pH Level Card -->
-          <div class="sensor-card" id="cardPH">
-            <div class="card-top">
-              <div class="sensor-icon icon-ph">
-                <i class="fa-solid fa-flask"></i>
-              </div>
-              <div class="sensor-meta">
-                <span class="sensor-title">ค่า pH ของน้ำ</span>
-                <span class="sensor-pin">pH Sensor (Pin 34)</span>
-              </div>
-            </div>
-            <div class="card-value-box">
-              <span id="valPH" class="sensor-value">--</span>
-              <span class="sensor-unit">pH</span>
-            </div>
-            <div class="sensor-range-bar">
-              <div class="range-info">
-                <span>ช่วงเหมาะสม: 6.0 - 8.0</span>
-                <span id="phStatusBadge" class="badge-status status-good">ปกติ</span>
-              </div>
-              <div class="progress-track">
-                <div id="barPH" class="progress-fill fill-ph" style="width: 50%;"></div>
-              </div>
-            </div>
+          <!-- Mode Selector (Demo vs Live ESP32) -->
+          <div class="mode-selector-group">
+            <button id="btnModeDemo" class="btn-mode-tab active">🟢 DEMO</button>
+            <button id="btnModeLive" class="btn-mode-tab">⚡ LIVE ESP32</button>
           </div>
 
-          <!-- 3. Light Intensity Card (BH1750) -->
-          <div class="sensor-card" id="cardLux">
-            <div class="card-top">
-              <div class="sensor-icon icon-lux">
-                <i class="fa-solid fa-sun"></i>
-              </div>
-              <div class="sensor-meta">
-                <span class="sensor-title">ความเข้มแสง</span>
-                <span class="sensor-pin">BH1750 I2C (Pin 21, 22)</span>
-              </div>
-            </div>
-            <div class="card-value-box">
-              <span id="valLux" class="sensor-value">--</span>
-              <span class="sensor-unit">Lux</span>
-            </div>
-            <div class="sensor-range-bar">
-              <div class="range-info">
-                <span>แสงแดดสังเคราะห์แสง</span>
-                <span id="luxStatusBadge" class="badge-status status-info">แดดปานกลาง</span>
-              </div>
-              <div class="progress-track">
-                <div id="barLux" class="progress-fill fill-lux" style="width: 40%;"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 4. Water Level Card (Water Tank Level %) -->
-          <div class="sensor-card card-water-level" id="cardWater">
-            <div class="card-top">
-              <div class="sensor-icon icon-water">
-                <i class="fa-solid fa-water"></i>
-              </div>
-              <div class="sensor-meta">
-                <span class="sensor-title">ระดับน้ำในบ่อ</span>
-                <span class="sensor-pin">Water Level (Pin 35)</span>
-              </div>
-            </div>
-            <div class="water-box-layout">
-              <div class="card-value-box">
-                <span id="valWater" class="sensor-value">--</span>
-                <span class="sensor-unit">%</span>
-              </div>
-              <!-- Animated Liquid Tank Graphic -->
-              <div class="liquid-tank">
-                <div id="liquidWave" class="liquid-wave" style="height: 50%;"></div>
-                <span id="liquidLabel" class="liquid-text">50%</span>
-              </div>
-            </div>
-            <div class="sensor-range-bar">
-              <div class="range-info">
-                <span>เปิดปั๊ม ≤30% | ปิดปั๊ม ≥70%</span>
-                <span id="waterStatusBadge" class="badge-status status-good">ปกติ</span>
-              </div>
-            </div>
-          </div>
-
-        </div> <!-- /sensors-grid -->
-
-        <!-- CONTROL PANEL & HARVEST TRACKER ROW -->
-        <div class="control-row">
-          
-          <!-- Hardware Relay Controls -->
-          <div class="panel-card control-card">
-            <div class="panel-header">
-              <h3><i class="fa-solid fa-toggle-on"></i> สั่งการอุปกรณ์ (Relay Control Pin 26)</h3>
-              <span class="chip-badge">Target: /controls</span>
-            </div>
-            
-            <div class="control-items">
-              <!-- Auto / Manual Mode Switch -->
-              <div class="control-item">
-                <div class="control-info">
-                  <span class="control-title"><i class="fa-solid fa-robot"></i> โหมดการทำงาน (Auto Mode)</span>
-                  <span class="control-desc">ควบคุมปั๊มน้ำอัตโนมัติตามระดับน้ำ (30% - 70%)</span>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" id="switchAutoMode" checked>
-                  <span class="slider round"></span>
-                </label>
-              </div>
-
-              <!-- Water Pump Toggle Switch -->
-              <div class="control-item">
-                <div class="control-info">
-                  <span class="control-title"><i class="fa-solid fa-dharmachakra"></i> ปั๊มน้ำ (Circulation Pump)</span>
-                  <span class="control-desc" id="pumpModeNotice">เปิด-ปิดปั๊ม (ใช้งานได้เมื่อปิด Auto Mode)</span>
-                </div>
-                <div class="pump-action-group">
-                  <span id="pumpStatusState" class="pump-badge badge-off">OFF</span>
-                  <label class="switch">
-                    <input type="checkbox" id="switchPumpCmd">
-                    <span class="slider round"></span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Safety Warning Banner -->
-              <div class="safety-alert">
-                <i class="fa-solid fa-triangle-exclamation text-amber"></i>
-                <span>มีระบบความปลอดภัย Auto Cut-off หากเปิดปั๊มค้างเกิน 5 นาที</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Harvest Tracker & Revenue Calculator -->
-          <div class="panel-card harvest-card">
-            <div class="panel-header">
-              <h3><i class="fa-solid fa-seedling"></i> รอบการเลี้ยงผำ (Harvest Cycle)</h3>
-              <span class="target-chip">เป้าหมาย 7 วัน</span>
-            </div>
-
-            <div class="harvest-body">
-              <div class="harvest-days-display">
-                <div class="days-circle">
-                  <span id="valHarvestDays" class="days-num">0</span>
-                  <span class="days-label">วัน</span>
-                </div>
-                <div class="harvest-info">
-                  <span class="harvest-status-title" id="harvestStatusTitle">กำลังเจริญเติบโต</span>
-                  <p class="harvest-desc" id="harvestDesc">ระยะเวลาเลี้ยงผำสมบูรณ์ใช้เวลา 7 - 10 วัน</p>
-                  
-                  <!-- Harvest Progress Bar -->
-                  <div class="harvest-progress">
-                    <div id="barHarvest" class="harvest-progress-fill" style="width: 0%;"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Action Reset Harvest Button -->
-              <button id="btnResetHarvest" class="btn-action btn-emerald">
-                <i class="fa-solid fa-rotate-right"></i> เริ่มนับรอบการเลี้ยงผำใหม่ (Reset Cycle)
-              </button>
-            </div>
-          </div>
-
-        </div> <!-- /control-row -->
-
-        <!-- REALTIME CHARTS SECTION -->
-        <div class="panel-card chart-card">
-          <div class="panel-header">
-            <h3><i class="fa-solid fa-chart-line"></i> กราฟแนวโน้มคุณภาพน้ำเรียลไทม์ (Telemetry Trends)</h3>
-            <div class="chart-controls">
-              <button class="btn-chip active" data-chart-filter="all">ทั้งหมด</button>
-              <button class="btn-chip" data-chart-filter="temp">อุณหภูมิน้ำ</button>
-              <button class="btn-chip" data-chart-filter="ph">ค่า pH</button>
-              <button class="btn-chip" data-chart-filter="lux">ความเข้มแสง</button>
-              <button class="btn-chip" data-chart-filter="water">ระดับน้ำ</button>
-              <button id="btnExportCSV" class="btn-chip btn-outline"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
-            </div>
-          </div>
-
-          <div class="chart-container">
-            <canvas id="realtimeChart"></canvas>
-          </div>
+          <!-- Demo Preset Simulation Selector -->
+          <select id="presetSelector" class="preset-dropdown" title="เลือกสภาวะจำลองสำหรับทดสอบระบบ">
+            <option value="NORMAL">🟢 จำลองสภาวะปกติ</option>
+            <option value="WARNING_TEMP">🟡 จำลองอุณหภูมิสูง</option>
+            <option value="ALERT_WATER">🔴 จำลองระดับน้ำต่ำ</option>
+            <option value="SENSOR_ERROR">⚠️ จำลองเซนเซอร์ขัดข้อง</option>
+            <option value="OFFLINE">⚫ จำลองสถานะ Offline</option>
+          </select>
         </div>
+      </header>
 
-      </div> <!-- /main-controls-col -->
+      <!-- PAGE CONTENT OUTLET -->
+      <main class="page-container" id="pageOutlet">
+        <!-- Dynamic page content loaded here -->
+      </main>
 
-      <!-- RIGHT COLUMN: CALCULATOR, WEATHER, CONFIG & CODE -->
-      <div class="grid-col side-tools-col">
+    </div> <!-- /main-wrapper -->
 
-        <!-- 1. YIELD & REVENUE ESTIMATOR -->
-        <div class="panel-card tool-card">
-          <div class="panel-header">
-            <h3><i class="fa-solid fa-calculator text-emerald"></i> เครื่องมือประเมินผลผลิต & รายได้</h3>
-          </div>
-          <div class="calc-form">
-            <div class="input-group">
-              <label><i class="fa-solid fa-ruler-combined"></i> ขนาดพื้นที่บ่อผำ ($m^2$):</label>
-              <input type="number" id="calcPondArea" value="10" min="1" step="1">
-            </div>
-            <div class="input-group">
-              <label><i class="fa-solid fa-tag"></i> ราคาขายผำสด (บาท/กก.):</label>
-              <input type="number" id="calcPricePerKg" value="100" min="10" step="5">
-            </div>
+  </div> <!-- /app-layout -->
 
-            <div class="calc-results">
-              <div class="result-box">
-                <span class="res-title">คาดการณ์ผลผลิต</span>
-                <span id="resYieldWeight" class="res-val text-emerald">0.00</span>
-                <span class="res-unit">กิโลกรัม</span>
-              </div>
-              <div class="result-box">
-                <span class="res-title">ประเมินรายได้</span>
-                <span id="resRevenue" class="res-val text-amber">0.00</span>
-                <span class="res-unit">บาท</span>
-              </div>
-            </div>
-          </div>
-        </div>
+  <!-- ==========================================================================
+     MODALS
+     ========================================================================== -->
 
-        <!-- 2. LOCAL WEATHER FORECAST WIDGET -->
-        <div class="panel-card weather-card">
-          <div class="panel-header">
-            <h3><i class="fa-solid fa-cloud-sun text-amber"></i> พยากรณ์สภาพอากาศท้องถิ่น</h3>
-            <span class="location-badge"><i class="fa-solid fa-location-dot"></i> ประเทศไทย</span>
-          </div>
-          <div class="weather-content">
-            <div class="weather-main">
-              <div class="weather-icon" id="weatherIcon">
-                <i class="fa-solid fa-sun text-amber"></i>
-              </div>
-              <div class="weather-temp">
-                <span id="weatherTemp">31</span>°C
-                <span id="weatherCondition" class="weather-sub">แดดจัด / เหมาะแก่การสังเคราะห์แสง</span>
-              </div>
-            </div>
-            <div class="weather-details">
-              <div class="w-item">
-                <i class="fa-solid fa-droplet text-cyan"></i> ความชื้นอากาศ: <span id="weatherHumidity">65%</span>
-              </div>
-              <div class="w-item">
-                <i class="fa-solid fa-wind text-slate"></i> ความเร็วลม: <span id="weatherWind">12 km/h</span>
-              </div>
-              <div class="w-item">
-                <i class="fa-solid fa-cloud-showers-heavy text-blue"></i> โอกาสฝนตก: <span id="weatherRain">15%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. SENSOR CALIBRATION & CONFIG PANEL -->
-        <div class="panel-card config-card">
-          <div class="panel-header">
-            <h3><i class="fa-solid fa-sliders text-cyan"></i> ตั้งค่าสอบเทียบ (Remote Config)</h3>
-          </div>
-          <div class="config-form">
-            <div class="form-row">
-              <div class="input-group">
-                <label>pH Slope:</label>
-                <input type="number" id="cfgPhSlope" value="-5.70" step="0.01">
-              </div>
-              <div class="input-group">
-                <label>pH Offset:</label>
-                <input type="number" id="cfgPhOffset" value="21.34" step="0.01">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="input-group">
-                <label>Water ADC Empty:</label>
-                <input type="number" id="cfgWaterEmpty" value="500">
-              </div>
-              <div class="input-group">
-                <label>Water ADC Full:</label>
-                <input type="number" id="cfgWaterFull" value="3000">
-              </div>
-            </div>
-            <button id="btnSaveConfig" class="btn-action btn-cyan">
-              <i class="fa-solid fa-floppy-disk"></i> บันทึกค่าสอบเทียบไปยัง Firebase
-            </button>
-          </div>
-        </div>
-
-        <!-- 4. ESP32 CODE & LINE TEST TOOL -->
-        <div class="panel-card code-card">
-          <div class="panel-header">
-            <h3><i class="fa-solid fa-code text-emerald"></i> โค้ด ESP32 & ทดสอบ LINE</h3>
-          </div>
-          <div class="code-body">
-            <p class="code-intro">บอร์ด ESP32 เชื่อมต่อ Firebase Database Host ที่ระบุในโค้ดของคุณเรียบร้อยแล้ว:</p>
-            <div class="url-box">
-              <code>https://smart-wolffia-farm-default-rtdb.asia-southeast1.firebasedatabase.app/</code>
-            </div>
-
-            <!-- Line Test Notification Tool -->
-            <div class="line-test-box">
-              <label><i class="fa-brands fa-line text-emerald"></i> ทดสอบส่งแจ้งเตือน LINE Notify:</label>
-              <div class="line-input-group">
-                <input type="text" id="lineTokenInput" placeholder="ใส่ LINE Notify Token ของคุณ">
-                <button id="btnTestLine" class="btn-emerald-sm"><i class="fa-solid fa-paper-plane"></i> ทดสอบส่ง</button>
-              </div>
-            </div>
-
-            <button id="btnViewESPCode" class="btn-action btn-outline-emerald">
-              <i class="fa-solid fa-file-code"></i> ดูและคัดลอกโค้ด ESP32 Arduino C++
-            </button>
-          </div>
-        </div>
-
-      </div> <!-- /side-tools-col -->
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="main-footer">
-      <p>Smart Wolffia Farm Dashboard &copy; 2026 | พัฒนาขึ้นสำหรับระบบบ่อเลี้ยงไข่ผำอัจฉริยะ ESP32 & Firebase Realtime Database</p>
-    </footer>
-
-  </div> <!-- /app-container -->
-
-  <!-- ESP32 CODE MODAL -->
-  <div id="codeModal" class="modal-backdrop hidden">
+  <!-- 1. pH Educational Modal -->
+  <div id="modalPH" class="modal-backdrop">
     <div class="modal-card">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-code text-emerald"></i> ซอร์สโค้ด ESP32 Arduino C++ (Wolffia Smart Farm)</h3>
-        <button id="btnCloseModal" class="btn-icon-sm"><i class="fa-solid fa-xmark"></i></button>
+        <h3><i class="fa-solid fa-flask text-cyan"></i> pH คืออะไร?</h3>
+        <button class="btn-secondary btn-close-modal" style="padding: 4px 10px;">✕</button>
       </div>
-      <div class="modal-body">
-        <pre><code id="espCodeSnippet">
-// โค้ด ESP32 Smart Wolffia Farm v2.0
-// บอร์ด: ESP32 Dev Module
-// เซนเซอร์: DS18B20 (Pin 4), pH Sensor (Pin 34), BH1750 (Pin 21, 22), Water Level (Pin 35), Relay (Pin 26)
-        </code></pre>
+      <div style="font-size: 0.95rem; color: var(--text-main); line-height: 1.6;">
+        <p><strong>pH (Potential of Hydrogen)</strong> เป็นค่าที่ใช้บอกความเป็นกรดหรือด่างของน้ำ โดยมีสเกลตั้งแต่ 0 ถึง 14</p>
+        <br>
+        <p>🌱 <strong>ความสำคัญสำหรับไข่ผำ:</strong> ไข่ผำเจริญเติบโตได้ดีที่สุดในน้ำที่มีค่า pH อยู่ในช่วง <strong>5.5 – 6.5</strong> (เป็นกรดอ่อน ๆ ถึงเป็นกลาง) หากค่า pH สูงหรือต่ำเกินไปจะส่งผลกระทบต่อการดูดซึมสารอาหารและการเจริญเติบโตของผำ</p>
       </div>
       <div class="modal-footer">
-        <button id="btnCopyCode" class="btn-action btn-emerald"><i class="fa-solid fa-copy"></i> คัดลอกโค้ดทั้งหมด</button>
+        <button class="btn-primary btn-close-modal">เข้าใจแล้ว</button>
       </div>
     </div>
   </div>
 
-  <!-- JavaScript Modules -->
-  <script src="js/config.js"></script>
-  <script src="js/simulator.js"></script>
-  <script src="js/weather.js"></script>
-  <script src="js/codeViewer.js"></script>
-  <script src="js/app.js"></script>
+  <!-- 2. Pump Confirmation Modal -->
+  <div id="modalPumpConfirm" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-triangle-exclamation text-amber"></i> ยืนยันการสั่งการอุปกรณ์</h3>
+        <button class="btn-secondary btn-close-modal" style="padding: 4px 10px;">✕</button>
+      </div>
+      <div style="font-size: 0.95rem; color: var(--text-main);">
+        คุณต้องการ <strong>เปิดปั๊มน้ำหมุนเวียน</strong> หรือไม่?
+        <br>
+        <span style="font-size: 0.82rem; color: var(--text-sub);">ระบบจะบันทึกคำสั่งนี้ลงใน Audit Log</span>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary btn-close-modal">ยกเลิก</button>
+        <button id="btnConfirmPumpOn" class="btn-primary"><i class="fa-solid fa-bolt"></i> ยืนยันเปิดปั๊ม</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Safety Blocked Alert Modal -->
+  <div id="modalSafetyAlert" class="modal-backdrop">
+    <div class="modal-card" style="border-color: var(--color-rose-danger);">
+      <div class="modal-header">
+        <h3 style="color: var(--color-rose-danger);"><i class="fa-solid fa-ban"></i> ไม่สามารถเปิดปั๊มได้!</h3>
+        <button class="btn-secondary btn-close-modal" style="padding: 4px 10px;">✕</button>
+      </div>
+      <div style="font-size: 0.95rem; color: var(--text-main);">
+        <p><strong>🛑 SAFETY LOCK: ไม่สามารถเปิดปั๊มได้ เนื่องจากระดับน้ำต่ำเกินไป (&lt; 20%)</strong></p>
+        <br>
+        <p style="font-size: 0.85rem; color: var(--text-sub);">
+          🛡️ <strong>Hardware Safety Layer Enforcement:</strong> ระบบความปลอดภัยไม่อนุญาตให้เปิดปั๊มน้ำเมื่อระดับน้ำต่ำเกินไป เพื่อป้องกันปั๊มหมุนเปล่าและเกิดความเสียหาย
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary btn-close-modal" style="background: var(--color-rose-danger);">รับทราบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configuration Scripts, Data Service & Application Controller -->
+  <script src="config.js"></script>
+  <script src="dataService.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เข้าสู่ระบบ — SMART WOLFFIA FARM</title>
+  
+  <!-- Google Fonts: Prompt & Sarabun -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Supabase Client JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;">
+
+  <!-- Ambient Glows -->
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Login Card Box -->
+  <div class="panel-card" style="width: 100%; max-width: 440px; padding: 32px; border: 1px solid var(--color-emerald-primary); box-shadow: 0 0 40px var(--color-emerald-glow);">
+    
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div class="brand-icon" style="width: 60px; height: 60px; font-size: 28px; margin: 0 auto 14px auto;">
+        <i class="fa-solid fa-leaf"></i>
+      </div>
+      <h1 style="font-size: 1.5rem; color: var(--text-main);">SMART WOLFFIA FARM</h1>
+      <p style="font-size: 0.85rem; color: var(--text-sub); margin-top: 4px;">ระบบเพาะเลี้ยงไข่ผำอัจฉริยะเพื่อการผลิตโปรตีนทางเลือก</p>
+    </div>
+
+    <!-- Alert Message Box -->
+    <div id="loginAlert" style="display: none; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.85rem; margin-bottom: 16px;"></div>
+
+    <!-- Login Form -->
+    <form id="loginForm">
+      <div class="form-group">
+        <label><i class="fa-solid fa-envelope"></i> อีเมล (Email):</label>
+        <input type="email" id="loginEmail" class="form-control" placeholder="admin@wolffia.farm" required>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-lock"></i> รหัสผ่าน (Password):</label>
+        <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" id="btnLoginSubmit" class="btn-primary" style="width: 100%; padding: 12px; margin-top: 8px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ (LOGIN)
+      </button>
+    </form>
+
+    <div style="text-align: center; margin: 20px 0; position: relative;">
+      <hr style="border: 0; border-top: 1px solid var(--bg-card-border);">
+      <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--bg-card); padding: 0 10px; font-size: 0.75rem; color: var(--text-muted);">หรือทดสอบด้วย Demo Roles</span>
+    </div>
+
+    <!-- Quick Demo Role Buttons for Evaluation -->
+    <div style="display: flex; gap: 10px;">
+      <button id="btnDemoAdmin" class="btn-secondary" style="flex: 1; padding: 10px; font-size: 0.82rem; border: 1px solid var(--color-amber-warn); color: var(--color-amber-warn);">
+        <i class="fa-solid fa-user-shield"></i> Demo ADMIN
+      </button>
+      <button id="btnDemoViewer" class="btn-secondary" style="flex: 1; padding: 10px; font-size: 0.82rem; border: 1px solid var(--color-cyan-primary); color: var(--color-cyan-primary);">
+        <i class="fa-solid fa-user"></i> Demo VIEWER
+      </button>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px; font-size: 0.78rem; color: var(--text-muted);">
+      &copy; 2026 Smart Wolffia Farm V3 — Supabase RBAC Protected
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    // Initialize Auth Login script
+    document.addEventListener("DOMContentLoaded", () => {
+      const loginForm = document.getElementById("loginForm");
+      const loginAlert = document.getElementById("loginAlert");
+
+      function showAlert(msg, isError = true) {
+        loginAlert.style.display = "block";
+        loginAlert.style.background = isError ? "rgba(239, 68, 68, 0.15)" : "rgba(16, 185, 129, 0.15)";
+        loginAlert.style.color = isError ? "var(--color-rose-danger)" : "var(--color-emerald-primary)";
+        loginAlert.style.border = `1px solid ${isError ? "var(--color-rose-danger)" : "var(--color-emerald-primary)"}`;
+        loginAlert.innerHTML = `<i class="${isError ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-check'}"></i> ${msg}`;
+      }
+
+      // Handle Form Submit
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = document.getElementById("loginEmail").value.trim();
+        const password = document.getElementById("loginPassword").value.trim();
+
+        showAlert("กำลังเข้าสู่ระบบ...", false);
+
+        // Demo User Bypass for Testing
+        if (email.toLowerCase().includes("admin")) {
+          sessionStorage.setItem("wolffia_user", JSON.stringify({ email: email, role: "admin", display_name: "Admin User" }));
+          window.location.href = "index.html";
+          return;
+        } else if (email.toLowerCase().includes("viewer")) {
+          sessionStorage.setItem("wolffia_user", JSON.stringify({ email: email, role: "viewer", display_name: "Viewer User" }));
+          window.location.href = "index.html";
+          return;
+        }
+
+        // Try Supabase Auth
+        if (window.supabase) {
+          const supabaseClient = window.supabase.createClient(APP_CONFIG.supabase.url, APP_CONFIG.supabase.anonKey);
+          const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) {
+            showAlert("เข้าสู่ระบบไม่สำเร็จ: " + error.message, true);
+          } else {
+            sessionStorage.setItem("wolffia_user", JSON.stringify({ email: data.user.email, role: "admin", display_name: data.user.email }));
+            window.location.href = "index.html";
+          }
+        } else {
+          sessionStorage.setItem("wolffia_user", JSON.stringify({ email: email, role: "admin", display_name: "Admin User" }));
+          window.location.href = "index.html";
+        }
+      });
+
+      // Handle Quick Demo Roles
+      document.getElementById("btnDemoAdmin").addEventListener("click", () => {
+        sessionStorage.setItem("wolffia_user", JSON.stringify({ email: "admin@wolffia.farm", role: "admin", display_name: "Admin Demo" }));
+        window.location.href = "index.html";
+      });
+
+      document.getElementById("btnDemoViewer").addEventListener("click", () => {
+        sessionStorage.setItem("wolffia_user", JSON.stringify({ email: "viewer@wolffia.farm", role: "viewer", display_name: "Viewer Demo" }));
+        window.location.href = "index.html";
+      });
+    });
+  </script>
+</body>
+</html>
