@@ -89,6 +89,7 @@
   </div>
 
   <script src="config.js"></script>
+  <script src="authService.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const loginForm = document.getElementById("loginForm");
@@ -138,65 +139,15 @@
 
         showAlert("กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...", false);
 
-        // Demo User Shortcuts for Quick Testing
-        if (email.toLowerCase().includes("admin") && password === "admin123") {
-          sessionStorage.setItem("wolffia_user", JSON.stringify({ email: email, role: "admin", display_name: "Admin User" }));
-          window.location.href = "index.html";
-          return;
-        } else if (email.toLowerCase().includes("viewer") && password === "viewer123") {
-          sessionStorage.setItem("wolffia_user", JSON.stringify({ email: email, role: "viewer", display_name: "Viewer User" }));
-          window.location.href = "index.html";
-          return;
-        }
+        const res = await AuthService.signIn(email, password);
 
-        // Real Supabase Auth Login
-        if (window.supabase && typeof APP_CONFIG !== "undefined" && APP_CONFIG.supabase && APP_CONFIG.supabase.url && !APP_CONFIG.supabase.url.includes("xyzexample")) {
-          try {
-            const supabaseClient = window.supabase.createClient(APP_CONFIG.supabase.url, APP_CONFIG.supabase.anonKey);
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-            if (error) {
-              showAlert("อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง", true);
-            } else {
-              // Read User Role from Supabase profiles table
-              let userRole = "viewer";
-              let displayName = data.user.email;
-
-              const { data: profile } = await supabaseClient
-                .from("profiles")
-                .select("role, display_name")
-                .eq("id", data.user.id)
-                .single();
-
-              if (profile) {
-                userRole = profile.role || "viewer";
-                displayName = profile.display_name || data.user.email;
-              }
-
-              sessionStorage.setItem("wolffia_user", JSON.stringify({
-                id: data.user.id,
-                email: data.user.email,
-                role: userRole,
-                display_name: displayName
-              }));
-
-              window.location.href = "index.html";
-            }
-          } catch (err) {
-            console.error("Supabase Login Error:", err);
-            showAlert("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง", true);
-          }
+        if (res.success) {
+          showAlert(res.user.status || "เข้าสู่ระบบสำเร็จ กำลังนำท่านเข้าสู่แดชบอร์ด...", false);
+          setTimeout(() => {
+            window.location.href = "index.html";
+          }, 400);
         } else {
-          // Local Fallback if Supabase credentials are still default placeholder
-          if (password === "admin123" || email.toLowerCase().includes("admin")) {
-            sessionStorage.setItem("wolffia_user", JSON.stringify({ email: email, role: "admin", display_name: "Admin User" }));
-            window.location.href = "index.html";
-          } else if (password === "viewer123" || email.toLowerCase().includes("viewer")) {
-            sessionStorage.setItem("wolffia_user", JSON.stringify({ email: email, role: "viewer", display_name: "Viewer User" }));
-            window.location.href = "index.html";
-          } else {
-            showAlert("อีเมลหรือรหัสผ่านไม่ถูกต้อง (ตัวอย่าง: admin@wolffia.farm / admin123)", true);
-          }
+          showAlert(res.message, true);
         }
       });
     });

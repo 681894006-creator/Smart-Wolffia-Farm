@@ -5,11 +5,11 @@
 
 class WolffiaApp {
   constructor() {
-    this.currentUser = JSON.parse(sessionStorage.getItem("wolffia_user")) || {
+    this.currentUser = typeof AuthService !== "undefined" ? AuthService.getCurrentUser() : (JSON.parse(sessionStorage.getItem("wolffia_user")) || {
       email: "public@wolffia.farm",
       role: "public",
       display_name: "Public Viewer"
-    };
+    });
 
     this.activePage = "dashboard";
     this.dashboardChart = null;
@@ -28,9 +28,13 @@ class WolffiaApp {
   async init() {
     console.log("[WolffiaApp] Starting Smart Wolffia Farm V3 App...");
 
+    if (typeof AuthService !== "undefined") {
+      this.currentUser = AuthService.getCurrentUser();
+    }
+
     this.updateUserUI();
     this.bindGlobalEvents();
-    await this.loadPage("dashboard");
+    this.initRouter();
     this.startTelemetryLoop();
   }
 
@@ -38,16 +42,20 @@ class WolffiaApp {
   // 1. AUTHENTICATION & ROLE-BASED ACCESS CONTROL (RBAC)
   // --------------------------------------------------------------------------
   updateUserUI() {
+    if (typeof AuthService !== "undefined") {
+      this.currentUser = AuthService.getCurrentUser();
+    }
+
     const avatar = document.getElementById("navUserAvatar");
     const name = document.getElementById("navUserName");
     const role = document.getElementById("navUserRole");
     const btnLogout = document.getElementById("btnLogout");
 
     if (this.currentUser) {
-      if (avatar) avatar.textContent = this.currentUser.display_name.charAt(0).toUpperCase();
-      if (name) name.textContent = this.currentUser.display_name;
+      if (avatar) avatar.textContent = (this.currentUser.display_name || "A").charAt(0).toUpperCase();
+      if (name) name.textContent = this.currentUser.display_name || this.currentUser.email;
       if (role) {
-        const rUpper = this.currentUser.role.toUpperCase();
+        const rUpper = (this.currentUser.role || "PUBLIC").toUpperCase();
         role.textContent = rUpper === "PUBLIC" ? "PUBLIC VIEWER" : rUpper;
         role.className = `user-role-tag role-${this.currentUser.role}`;
       }
@@ -63,9 +71,11 @@ class WolffiaApp {
       const isAdmin = this.currentUser.role === "admin";
       ["navControl", "navCalibration", "navUsers", "navSettings", "navAudit"].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.style.display = isAdmin ? "flex" : "none";
+        if (el) el.style.display = isAdmin ? "block" : "none";
       });
     }
+
+    this.updateDebugPanel();
   }
 
   checkAdminPermission(actionName) {
@@ -78,28 +88,50 @@ class WolffiaApp {
   }
 
   // --------------------------------------------------------------------------
-  // 2. ROUTER & GLOBAL EVENT HANDLERS
+  // 2. SPA HASH ROUTER & GLOBAL EVENT HANDLERS
   // --------------------------------------------------------------------------
+  initRouter() {
+    const handleHash = () => {
+      const hash = window.location.hash.replace("#/", "").replace("#", "").trim();
+      const page = hash || "dashboard";
+      this.loadPage(page);
+    };
+
+    window.addEventListener("hashchange", handleHash);
+
+    // Initial Route Load
+    const initialPage = window.location.hash.replace("#/", "").replace("#", "").trim() || "dashboard";
+    this.loadPage(initialPage);
+  }
+
   bindGlobalEvents() {
+    // Robust Sidebar Navigation Click Handler (Event Delegation & currentTarget fix)
     document.querySelectorAll(".sidebar-nav .nav-item").forEach(item => {
       item.addEventListener("click", (e) => {
         e.preventDefault();
-        const page = item.getAttribute("data-page");
+        const navItem = e.currentTarget;
+        const page = navItem.getAttribute("data-page");
         if (page) {
-          document.querySelectorAll(".sidebar-nav .nav-item").forEach(el => el.classList.remove("active"));
-          item.classList.add("active");
-          this.loadPage(page);
+          window.location.hash = `#/${page}`;
+          // Close Mobile Drawer on Navigation
+          const sidebar = document.querySelector(".sidebar");
+          if (sidebar) sidebar.classList.remove("open");
         }
       });
     });
 
     document.getElementById("btnLogout")?.addEventListener("click", () => {
-      sessionStorage.removeItem("wolffia_user");
-      window.location.href = "login.html";
+      if (typeof AuthService !== "undefined") {
+        AuthService.signOut();
+      } else {
+        sessionStorage.removeItem("wolffia_user");
+        window.location.href = "login.html";
+      }
     });
 
     // Mobile Sidebar Toggle
-    document.getElementById("btnMobileSidebarToggle")?.addEventListener("click", () => {
+    document.getElementById("btnMobileSidebarToggle")?.addEventListener("click", (e) => {
+      e.stopPropagation();
       const sidebar = document.querySelector(".sidebar");
       if (sidebar) sidebar.classList.toggle("open");
     });
@@ -107,17 +139,17 @@ class WolffiaApp {
     // Toggle Buttons for DEMO MODE / LIVE MODE
     document.getElementById("btnModeDemo")?.addEventListener("click", () => {
       DataService.currentMode = "DEMO";
-      document.getElementById("btnModeDemo").classList.add("active");
-      document.getElementById("btnModeLive").classList.remove("active");
-      document.getElementById("presetSelector").style.display = "inline-block";
+      document.getElementById("btnModeDemo")?.classList.add("active");
+      document.getElementById("btnModeLive")?.classList.remove("active");
+      if (document.getElementById("presetSelector")) document.getElementById("presetSelector").style.display = "inline-block";
       this.refreshTelemetryUI();
     });
 
     document.getElementById("btnModeLive")?.addEventListener("click", async () => {
       DataService.currentMode = "LIVE";
-      document.getElementById("btnModeLive").classList.add("active");
-      document.getElementById("btnModeDemo").classList.remove("active");
-      document.getElementById("presetSelector").style.display = "none";
+      document.getElementById("btnModeLive")?.classList.add("active");
+      document.getElementById("btnModeDemo")?.classList.remove("active");
+      if (document.getElementById("presetSelector")) document.getElementById("presetSelector").style.display = "none";
       await DataService.getLatestSensorData();
       this.refreshTelemetryUI();
     });
@@ -138,9 +170,29 @@ class WolffiaApp {
   }
 
   async loadPage(pageName) {
+    // Admin Protected Routes Guard
+    const adminOnlyPages = ["control", "calibration", "users", "settings", "audit-log"];
+    if (adminOnlyPages.includes(pageName) && this.currentUser.role !== "admin") {
+      alert(`⛔ ปฏิเสธการเข้าถึง (${pageName})\n\nหน้านี้เปิดให้เฉพาะผู้ดูแลระบบ (ADMIN) เข้าใช้งานเท่านั้น`);
+      window.location.hash = "#/dashboard";
+      return;
+    }
+
     this.activePage = pageName;
+
+    // Update Active Nav Item Highlight
+    document.querySelectorAll(".sidebar-nav .nav-item").forEach(el => {
+      if (el.getAttribute("data-page") === pageName) {
+        el.classList.add("active");
+      } else {
+        el.classList.remove("active");
+      }
+    });
+
     const outlet = document.getElementById("pageOutlet");
     if (!outlet) return;
+
+    outlet.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-sub);"><i class="fa-solid fa-spinner fa-spin fa-2x text-emerald"></i><p style="margin-top: 12px;">กำลังโหลดข้อมูล...</p></div>`;
 
     let loadedContent = "";
     try {
@@ -160,6 +212,17 @@ class WolffiaApp {
 
     this.bindPageEvents(pageName);
     this.refreshTelemetryUI();
+    this.updateDebugPanel();
+  }
+
+  updateDebugPanel() {
+    const user = this.currentUser || { email: "public@wolffia.farm", role: "public" };
+    if (document.getElementById("dbgAuthStatus")) document.getElementById("dbgAuthStatus").textContent = user.role !== "public" ? "SIGNED IN" : "PUBLIC";
+    if (document.getElementById("dbgUserEmail")) document.getElementById("dbgUserEmail").textContent = user.email || "public@wolffia.farm";
+    if (document.getElementById("dbgUserRole")) document.getElementById("dbgUserRole").textContent = (user.role || "public").toUpperCase();
+    if (document.getElementById("dbgCurrentRoute")) document.getElementById("dbgCurrentRoute").textContent = `/#/${this.activePage || "dashboard"}`;
+    if (document.getElementById("dbgSupabaseStatus")) document.getElementById("dbgSupabaseStatus").textContent = DataService.isLiveConnected ? "CONNECTED" : "WAITING";
+    if (document.getElementById("dbgEsp32Status")) document.getElementById("dbgEsp32Status").textContent = DataService.isLiveConnected ? "ONLINE" : "CHECKING";
   }
 
   bindPageEvents(pageName) {

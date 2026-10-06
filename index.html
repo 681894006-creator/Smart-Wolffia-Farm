@@ -250,8 +250,22 @@
     </div>
   </div>
 
+  <!-- Dev Mode Debug Information Panel (Part 13 Requirement) -->
+  <div id="debugPanel" style="position: fixed; bottom: 12px; right: 12px; z-index: 9999; background: rgba(15, 23, 42, 0.92); border: 1px solid var(--color-emerald-primary); border-radius: var(--radius-md); padding: 10px 14px; font-size: 0.75rem; color: var(--text-sub); backdrop-filter: blur(10px); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 4px; font-family: monospace;">
+    <div style="font-weight: 700; color: var(--color-emerald-primary); border-bottom: 1px solid var(--bg-card-border); padding-bottom: 4px; display: flex; justify-content: space-between; gap: 12px;">
+      <span>🛠️ DEV DEBUG PANEL</span>
+      <span id="dbgAuthStatus" style="color: var(--color-emerald-primary);">SIGNED IN</span>
+    </div>
+    <div>USER: <strong id="dbgUserEmail" style="color: var(--text-main);">admin@wolffia.farm</strong></div>
+    <div>ROLE: <strong id="dbgUserRole" style="color: var(--color-amber-warn);">ADMIN</strong></div>
+    <div>ROUTE: <strong id="dbgCurrentRoute" style="color: var(--color-cyan-primary);">/dashboard</strong></div>
+    <div>SUPABASE: <strong id="dbgSupabaseStatus" style="color: var(--color-emerald-primary);">CONNECTED</strong></div>
+    <div>ESP32: <strong id="dbgEsp32Status" style="color: var(--color-emerald-primary);">ONLINE</strong></div>
+  </div>
+
   <!-- Configuration Scripts, Data Service & Application Controller -->
   <script src="config.js"></script>
+  <script src="authService.js"></script>
   <script src="dataService.js"></script>
   <script src="script.js"></script>
 </body>
