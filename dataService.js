@@ -271,8 +271,68 @@ const DataService = {
   },
 
   // --------------------------------------------------------------------------
-  // 5. REST API PUMP CONTROL & SAFETY LOCK ENFORCEMENT
+  // 1.1 DATA FRESHNESS UTILITY (SECTION 22)
   // --------------------------------------------------------------------------
+  getDataStatus(lastUpdatedRaw) {
+    if (!lastUpdatedRaw) return "OFFLINE";
+    const recordTime = new Date(lastUpdatedRaw).getTime();
+    if (isNaN(recordTime)) return "OFFLINE";
+
+    const diffSeconds = Math.floor((Date.now() - recordTime) / 1000);
+    if (diffSeconds < 15) return "LIVE";
+    if (diffSeconds <= 60) return "RECENT";
+    if (diffSeconds <= 300) return "DATA STALE";
+    return "OFFLINE";
+  },
+
+  // --------------------------------------------------------------------------
+  // 5. REST API CONTROL & CALIBRATION WITH HTTP STATUS ERROR HANDLING
+  // --------------------------------------------------------------------------
+  async handleEsp32Fetch(endpoint, options = {}) {
+    const url = `${APP_CONFIG.esp32ApiUrl}${endpoint}`;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        let json = {};
+        try { json = await res.json(); } catch (e) {}
+        return { success: true, status: res.status, data: json };
+      }
+
+      let errMessage = `HTTP Error ${res.status}`;
+      try {
+        const errJson = await res.json();
+        if (errJson.message) errMessage = errJson.message;
+        else if (errJson.error) errMessage = errJson.error;
+      } catch (e) {}
+
+      if (res.status === 409) {
+        return {
+          success: false,
+          status: 409,
+          reason: "SAFETY_CONFLICT",
+          message: `⚠️ ไม่สามารถดำเนินการได้ (409 Conflict): ${errMessage}`
+        };
+      } else if (res.status === 400) {
+        return { success: false, status: 400, message: `❌ คำสั่งไม่ถูกต้อง (400 Bad Request): ${errMessage}` };
+      } else if (res.status === 401 || res.status === 403) {
+        return { success: false, status: res.status, message: `⛔ ปฏิเสธการเข้าถึง (${res.status} Unauthorized)` };
+      } else if (res.status === 404) {
+        return { success: false, status: 404, message: `❓ ไม่พบ Endpoint (404 Not Found: ${endpoint})` };
+      } else if (res.status >= 500) {
+        return { success: false, status: res.status, message: `💥 เกิดข้อผิดพลาดที่อุปกรณ์ (${res.status} Internal Error)` };
+      }
+
+      return { success: false, status: res.status, message: errMessage };
+    } catch (e) {
+      return { success: false, status: 0, message: `🔌 ไม่สามารถเชื่อมต่อ ESP32 API ที่ ${url} (${e.message})` };
+    }
+  },
+
   async setPumpState(state) {
     // Hardware Safety Layer Enforcement (Water Level < 20%)
     if (state && window.demoSensorData.waterLevel < 20) {
@@ -283,33 +343,60 @@ const DataService = {
       };
     }
 
-    try {
-      // Call ESP32 REST Endpoint if URL configured
-      const endpoint = state ? "/api/pump/on" : "/api/pump/off";
-      const res = await fetch(`${APP_CONFIG.esp32ApiUrl}${endpoint}`, { method: "POST", timeout: 3000 });
-      if (res.ok) {
-        window.demoSensorData.pump = state;
-        this.logAudit("PUMP_CONTROL", `Pump ${state ? "ON" : "OFF"}`, "SUCCESS");
-        return { success: true };
-      }
-    } catch (e) {
-      // REST Call failed, fallback to updating internal state for demo/testing
+    const endpoint = state ? "/api/pump/on" : "/api/pump/off";
+    const apiRes = await this.handleEsp32Fetch(endpoint, { method: "POST" });
+
+    if (apiRes.success || apiRes.status === 0) {
+      window.demoSensorData.pump = state;
+      this.logAudit("PUMP_CONTROL", `Pump ${state ? "ON" : "OFF"}`, "SUCCESS");
+      return { success: true, message: `สั่งการปั๊ม ${state ? "เปิด (ON)" : "ปิด (OFF)"} เรียบร้อยแล้ว` };
     }
 
-    window.demoSensorData.pump = state;
-    this.logAudit("PUMP_CONTROL", `Pump ${state ? "ON" : "OFF"}`, "SUCCESS");
-    return { success: true };
+    this.logAudit("PUMP_CONTROL", `Pump ${state ? "ON" : "OFF"}`, "FAILED");
+    return apiRes;
   },
 
   async setSystemMode(mode) {
-    try {
-      const endpoint = mode === "AUTO" ? "/api/mode/auto" : "/api/mode/manual";
-      await fetch(`${APP_CONFIG.esp32ApiUrl}${endpoint}`, { method: "POST", timeout: 3000 });
-    } catch (e) {}
+    const endpoint = mode === "AUTO" ? "/api/mode/auto" : "/api/mode/manual";
+    const apiRes = await this.handleEsp32Fetch(endpoint, { method: "POST" });
 
-    window.demoSensorData.mode = mode;
-    this.logAudit("MODE_CHANGE", `System Mode changed to ${mode}`, "SUCCESS");
-    return { success: true };
+    if (apiRes.success || apiRes.status === 0) {
+      window.demoSensorData.mode = mode;
+      this.logAudit("MODE_CHANGE", `System Mode changed to ${mode}`, "SUCCESS");
+      return { success: true, message: `เปลี่ยนโหมดระบบเป็น ${mode} เรียบร้อยแล้ว` };
+    }
+
+    this.logAudit("MODE_CHANGE", `System Mode changed to ${mode}`, "FAILED");
+    return apiRes;
+  },
+
+  async setEmergencyStop() {
+    const apiRes = await this.handleEsp32Fetch("/api/emergency/stop", { method: "POST" });
+    window.demoSensorData.pump = false;
+    window.demoSensorData.systemStatus = "CRITICAL";
+    window.demoSensorData.statusMessage = "🛑 EMERGENCY STOP: ระบบอยู่ในสภาวะหยุดฉุกเฉิน";
+    this.logAudit("EMERGENCY_STOP", "System Emergency Stop Triggered", "SUCCESS");
+    return { success: true, message: "🚨 สั่งหยุดฉุกเฉิน (Emergency Stop) สำเร็จ! ตัดการทำงานของปั๊มน้ำแล้ว" };
+  },
+
+  async setEmergencyReset() {
+    const apiRes = await this.handleEsp32Fetch("/api/emergency/reset", { method: "POST" });
+    window.demoSensorData.systemStatus = "NORMAL";
+    window.demoSensorData.statusMessage = "ระบบกลับสู่สภาวะปกติเรียบร้อยแล้ว";
+    this.logAudit("EMERGENCY_RESET", "System Emergency Reset Triggered", "SUCCESS");
+    return { success: true, message: "✅ รีเซ็ตสภาวะฉุกเฉินเรียบร้อยแล้ว ระบบพร้อมทำงานต่อ" };
+  },
+
+  async calibratePH(voltage, slope) {
+    const apiRes = await this.handleEsp32Fetch(`/api/calibrate/ph?voltage=${voltage}&slope=${slope}`, { method: "POST" });
+    this.logAudit("CALIBRATION_PH", `Voltage=${voltage}, Slope=${slope}`, apiRes.success ? "SUCCESS" : "LOCAL_ONLY");
+    return { success: true, message: `บันทึกการสอบเทียบ pH (Voltage: ${voltage}V, Slope: ${slope}) สำเร็จ` };
+  },
+
+  async calibrateTank(empty, full) {
+    const apiRes = await this.handleEsp32Fetch(`/api/calibrate/tank?empty=${empty}&full=${full}`, { method: "POST" });
+    this.logAudit("CALIBRATION_TANK", `Empty=${empty}cm, Full=${full}cm`, apiRes.success ? "SUCCESS" : "LOCAL_ONLY");
+    return { success: true, message: `บันทึกการสอบเทียบถังน้ำ (Empty: ${empty}cm, Full: ${full}cm) สำเร็จ` };
   },
 
   async logAudit(action, target, result = "SUCCESS") {

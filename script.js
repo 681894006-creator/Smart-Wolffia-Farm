@@ -61,7 +61,7 @@ class WolffiaApp {
       }
 
       const isAdmin = this.currentUser.role === "admin";
-      ["navUsers", "navSettings", "navAudit"].forEach(id => {
+      ["navControl", "navCalibration", "navUsers", "navSettings", "navAudit"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = isAdmin ? "flex" : "none";
       });
@@ -181,6 +181,10 @@ class WolffiaApp {
       this.initHarvestPage();
     } else if (pageName === "nutrients") {
       this.initNutrientsPage();
+    } else if (pageName === "control") {
+      this.initControlPage();
+    } else if (pageName === "calibration") {
+      this.initCalibrationPage();
     } else if (pageName === "users") {
       this.initUsersPage();
     } else if (pageName === "settings") {
@@ -472,6 +476,98 @@ class WolffiaApp {
     `).join("");
   }
 
+  initControlPage() {
+    const isAdmin = this.currentUser && this.currentUser.role === "admin";
+    const badgeText = document.getElementById("controlRoleText");
+    if (badgeText) {
+      badgeText.textContent = isAdmin ? "ADMIN ACCESS" : "READ ONLY (PUBLIC/VIEWER)";
+    }
+
+    document.getElementById("btnCtrlModeAuto")?.addEventListener("click", async () => {
+      if (!this.checkAdminPermission("เปลี่ยนโหมดเป็น AUTO")) return;
+      const res = await DataService.setSystemMode("AUTO");
+      alert(res.message);
+      this.refreshTelemetryUI();
+    });
+
+    document.getElementById("btnCtrlModeManual")?.addEventListener("click", async () => {
+      if (!this.checkAdminPermission("เปลี่ยนโหมดเป็น MANUAL")) return;
+      const res = await DataService.setSystemMode("MANUAL");
+      alert(res.message);
+      this.refreshTelemetryUI();
+    });
+
+    document.getElementById("btnCtrlPumpOn")?.addEventListener("click", async () => {
+      if (!this.checkAdminPermission("เปิดปั๊มน้ำ")) return;
+      if (confirm("คุณต้องการ ยืนยันเปิดปั๊มน้ำหมุนเวียน หรือไม่?")) {
+        const res = await DataService.setPumpState(true);
+        if (!res.success) {
+          if (res.reason === "SAFETY_LOCK") {
+            document.getElementById("modalSafetyAlert")?.classList.add("active");
+          } else {
+            alert(`⛔ ${res.message}`);
+          }
+        } else {
+          alert(`✅ ${res.message}`);
+        }
+        this.refreshTelemetryUI();
+      }
+    });
+
+    document.getElementById("btnCtrlPumpOff")?.addEventListener("click", async () => {
+      if (!this.checkAdminPermission("ปิดปั๊มน้ำ")) return;
+      const res = await DataService.setPumpState(false);
+      alert(res.message || "ปิดปั๊มน้ำเรียบร้อย");
+      this.refreshTelemetryUI();
+    });
+
+    document.getElementById("btnCtrlEmergencyStop")?.addEventListener("click", async () => {
+      if (!this.checkAdminPermission("สั่งหยุดฉุกเฉิน")) return;
+      if (confirm("🚨 ยืนยันการกดสั่ง EMERGENCY STOP หรือไม่?\nระบบจะตัดการทำงานของปั๊มน้ำทันที")) {
+        const res = await DataService.setEmergencyStop();
+        alert(res.message);
+        this.refreshTelemetryUI();
+      }
+    });
+
+    document.getElementById("btnCtrlEmergencyReset")?.addEventListener("click", async () => {
+      if (!this.checkAdminPermission("รีเซ็ตระบบฉุกเฉิน")) return;
+      const res = await DataService.setEmergencyReset();
+      alert(res.message);
+      this.refreshTelemetryUI();
+    });
+  }
+
+  initCalibrationPage() {
+    const isAdmin = this.currentUser && this.currentUser.role === "admin";
+    const badgeText = document.getElementById("calibRoleText");
+    if (badgeText) {
+      badgeText.textContent = isAdmin ? "ADMIN ACCESS" : "READ ONLY (PUBLIC/VIEWER)";
+    }
+
+    document.getElementById("formCalibPH")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!this.checkAdminPermission("บันทึกการสอบเทียบ pH")) return;
+      const voltage = parseFloat(document.getElementById("calibPhVoltage").value);
+      const slope = parseFloat(document.getElementById("calibPhSlope").value);
+      if (confirm(`ยืนยันบันทึกค่าสอบเทียบ pH (Voltage: ${voltage}V, Slope: ${slope}) ไปยัง ESP32 หรือไม่?`)) {
+        const res = await DataService.calibratePH(voltage, slope);
+        alert(res.message);
+      }
+    });
+
+    document.getElementById("formCalibTank")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!this.checkAdminPermission("บันทึกการสอบเทียบระดับน้ำ")) return;
+      const empty = parseFloat(document.getElementById("calibTankEmpty").value);
+      const full = parseFloat(document.getElementById("calibTankFull").value);
+      if (confirm(`ยืนยันบันทึกค่าสอบเทียบระดับน้ำ (Empty: ${empty}cm, Full: ${full}cm) ไปยัง ESP32 หรือไม่?`)) {
+        const res = await DataService.calibrateTank(empty, full);
+        alert(res.message);
+      }
+    });
+  }
+
   initUsersPage() {
     if (!this.checkAdminPermission("เข้าถึงการจัดการผู้ใช้งาน")) return;
   }
@@ -629,6 +725,20 @@ class WolffiaApp {
 
     if (document.getElementById("cardPumpStateText")) document.getElementById("cardPumpStateText").textContent = s.pump ? "ON" : "OFF";
     if (document.getElementById("cardPumpModeText")) document.getElementById("cardPumpModeText").textContent = `(โหมด ${s.mode})`;
+
+    // Control Page elements refresh
+    if (document.getElementById("ctrlModeVal")) document.getElementById("ctrlModeVal").textContent = s.mode;
+    if (document.getElementById("ctrlPumpVal")) document.getElementById("ctrlPumpVal").textContent = s.pump ? "ON" : "OFF";
+    if (document.getElementById("ctrlWaterVal")) document.getElementById("ctrlWaterVal").textContent = `${s.waterLevel} %`;
+    if (document.getElementById("ctrlSafetyVal")) {
+      document.getElementById("ctrlSafetyVal").textContent = s.waterLevel < 20 ? "LOCKED (< 20%)" : "READY";
+      document.getElementById("ctrlSafetyVal").className = s.waterLevel < 20 ? "kpi-value text-rose" : "kpi-value text-emerald";
+    }
+    if (document.getElementById("ctrlModeChip")) document.getElementById("ctrlModeChip").textContent = `MODE: ${s.mode}`;
+    if (document.getElementById("ctrlPumpChip")) document.getElementById("ctrlPumpChip").textContent = `PUMP: ${s.pump ? "ON" : "OFF"}`;
+    if (document.getElementById("ctrlHumanStatus")) {
+      document.getElementById("ctrlHumanStatus").textContent = s.statusMessage || s.recommendation || `ระบบกำลังทำงานในโหมด ${s.mode}`;
+    }
 
     // Safety Lock Banner
     const safetyBanner = document.getElementById("safetyLockBanner");

@@ -101,6 +101,12 @@
         <li class="nav-item" data-page="nutrients">
           <a><i class="fa-solid fa-bottle-droplet"></i> <span>สารอาหาร</span></a>
         </li>
+        <li class="nav-item" data-page="control" id="navControl">
+          <a><i class="fa-solid fa-gamepad text-emerald"></i> <span>ควบคุมอุปกรณ์ (Control)</span> <span class="nav-badge-admin">Admin</span></a>
+        </li>
+        <li class="nav-item" data-page="calibration" id="navCalibration">
+          <a><i class="fa-solid fa-sliders text-cyan"></i> <span>สอบเทียบ (Calibration)</span> <span class="nav-badge-admin">Admin</span></a>
+        </li>
         <li class="nav-item" data-page="users" id="navUsers">
           <a><i class="fa-solid fa-users-gear"></i> <span>ผู้ใช้งาน</span> <span class="nav-badge-admin">Admin</span></a>
         </li>
@@ -147,24 +153,24 @@
 
         <div class="header-controls">
           <!-- Connection Status Badge -->
-          <div id="connectionStatus" class="connection-chip">
+          <div id="connectionStatus" class="connection-chip status-live">
             <span class="pulse-dot"></span>
-            <span id="connectionStatusText">🟡 DEMO MODE (ข้อมูลจำลอง)</span>
+            <span id="connectionStatusText">🟢 LIVE DATA (ข้อมูลจริงจากอุปกรณ์)</span>
           </div>
 
           <!-- Last Updated Chip -->
           <div class="time-chip" style="background: rgba(255,255,255,0.03); padding: 5px 12px; border-radius: var(--radius-full); border: 1px solid var(--bg-card-border);">
-            <i class="fa-solid fa-clock text-emerald"></i> <span style="font-size: 0.8rem; color: var(--text-sub);">Last updated:</span> <strong id="headerLastUpdated" style="color: var(--text-main); font-size: 0.82rem;">00:45:32</strong>
+            <i class="fa-solid fa-clock text-emerald"></i> <span style="font-size: 0.8rem; color: var(--text-sub);">Last updated:</span> <strong id="headerLastUpdated" style="color: var(--text-main); font-size: 0.82rem;">00:00:00</strong>
           </div>
 
-          <!-- Mode Selector (Demo vs Live ESP32) -->
+          <!-- Mode Selector (Live ESP32 vs Demo Dev) -->
           <div class="mode-selector-group">
-            <button id="btnModeDemo" class="btn-mode-tab active">🟢 DEMO</button>
-            <button id="btnModeLive" class="btn-mode-tab">⚡ LIVE ESP32</button>
+            <button id="btnModeLive" class="btn-mode-tab active">⚡ LIVE ESP32</button>
+            <button id="btnModeDemo" class="btn-mode-tab">🟢 DEMO</button>
           </div>
 
-          <!-- Demo Preset Simulation Selector -->
-          <select id="presetSelector" class="preset-dropdown" title="เลือกสภาวะจำลองสำหรับทดสอบระบบ">
+          <!-- Demo Preset Simulation Selector (Hidden in Live Mode) -->
+          <select id="presetSelector" class="preset-dropdown" style="display: none;" title="เลือกสภาวะจำลองสำหรับทดสอบระบบ">
             <option value="NORMAL">🟢 จำลองสภาวะปกติ</option>
             <option value="WARNING_TEMP">🟡 จำลองอุณหภูมิสูง</option>
             <option value="ALERT_WATER">🔴 จำลองระดับน้ำต่ำ</option>
